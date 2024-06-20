@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Algoritma Djikstra Kel 3</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+        .bg-loader {
+            display: none; /* Hanya tampilkan loader jika diperlukan */
+            background-color: rgba(255, 255, 255, 0.8);
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            z-index: 9999;
+        }
+        .loader {
+            border: 16px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 16px solid #1922a8;
+            width: 120px;
+            height: 120px;
+            animation: spin 2s linear infinite;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .wrapper {
+            padding: 20px 0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        header {
+            background-color:#36a819;
+            padding: 20px 0;
+        }
+        header h1 a {
+            text-decoration: none;
+            color: #fff;
+            font-size: 2em;
+        }
+        header ul {
+            list-style: none;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+        }
+        header ul li {
+            margin: 0 15px;
+        }
+        header ul li a {
+            text-decoration: none;
+            color: #fff;
+            font-weight: bold;
+        }
+        header ul li.active a {
+            border-bottom: 2px solid #fff;
+        }
+        .label {
+            background-color: #eee;
+            padding: 10px 0;
+            text-align: center;
+        }
+        .label p {
+            margin: 0;
+            font-size: 0.9em;
+        }
+        #pembungkus {
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            text-align: left;
+        }
+        #pembungkus h1 {
+            color: #333;
+            text-align: center;
+        }
+        .centering {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        form {
+            width: 100%;
+        }
+        form label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        form input {
+            width: calc(100% - 22px);
+            margin-bottom: 15px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        form .button {
+            background-color: #64f71f;
+            color: #FFF;
+            border: none;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        form .button:hover {
+            background-color: #a85919;
+        }
+        #hasilJalurDijkstra {
+            width: 100%;
+            height: 150px;
+            margin: 10px 0;
+            padding: 10px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+        }
+        footer {
+            background-color: #1ea819;
+            padding: 10px 0;
+            text-align: center;
+            color: #fff;
+        }
+        footer small {
+            font-size: 0.8em;
+        }
+    </style>
+</head>
+<body>
+    <!-- loader -->
+    <div class="bg-loader">
+        <div class="loader"></div>
+    </div>
+
+    <!-- header -->
+
+    <!-- content -->
+    <div id="pembungkus">
+        <h1>Perhitungan Jarak Terpendek Dari UNIMED Ke Stasiun Kereta Api Medan</h1>
+        <div class="centering">
+            <form method="post" name="formDijkstra" onsubmit="findShortestPath(); return false;">
+                <label>Input Titik Awal</label>
+                <input type="text" name="startNode" placeholder="Titik Awal" required>
+
+                <label>Input Titik Akhir</label>
+                <input type="text" name="endNode" placeholder="Titik Akhir" required>
+
+                <button type="submit" class="button">Hitung Jarak</button>
+            </form>
+            <div>
+                <p>Hasil Jalur dan Jarak Terpendek</p>
+                <textarea id="hasilJalurDijkstra" readonly></textarea>
+            </div>
+        </div>
+    </div>
+
+    <!-- footer -->
+    <footer>
+        <div class="container">
+            <small>Copyright &copy; 2024 - Teori Graph Kelompok 3 PSM 22 B. All Rights Reserved.</small>
+        </div>
+    </footer>
+
+    <script>
+        class Dijkstra {
+            constructor(simpul, graf) {
+                this.simpul = simpul;
+                this.graf = graf;
+            }
+
+            mencari_rute(start, end) {
+                let unvisited_simpul = {};
+                for (let n of this.simpul) {
+                    unvisited_simpul[n] = Infinity;
+                }
+                unvisited_simpul[start] = 0;
+
+                let visited_simpul = {};
+                let parents = {};
+
+                while (Object.keys(unvisited_simpul).length > 0) {
+                    let min_vertex = Object.keys(unvisited_simpul).reduce((a, b) => unvisited_simpul[a] < unvisited_simpul[b] ? a : b);
+
+                    if (min_vertex === end) {
+                        visited_simpul[min_vertex] = unvisited_simpul[min_vertex];
+                        break;
+                    }
+
+                    for (let [neighbour, weight] of Object.entries(this.graf[min_vertex] || {})) {
+                        if (neighbour in visited_simpul) {
+                            continue;
+                        }
+
+                        let jalur_baru = unvisited_simpul[min_vertex] + weight;
+                        if (jalur_baru < unvisited_simpul[neighbour]) {
+                            unvisited_simpul[neighbour] = jalur_baru;
+                            parents[neighbour] = min_vertex;
+                        }
+                    }
+
+                    visited_simpul[min_vertex] = unvisited_simpul[min_vertex];
+                    delete unvisited_simpul[min_vertex];
+                }
+
+                return [parents, visited_simpul];
+            }
+
+            static jalur_dilewati(parents, start, end) {
+                let jalur = [end];
+                while (true) {
+                    let key = parents[jalur[0]];
+                    jalur.unshift(key);
+                    if (key === start) {
+                        break;
+                    }
+                }
+                return jalur;
+            }
+
+            static cetak_jalur_dan_jarak(jalur, graf) {
+                let total_jarak = 0;
+                let hasil = [];
+                for (let i = 0; i < jalur.length - 1; i++) {
+                    let simpul_asal = jalur[i];
+                    let simpul_tujuan = jalur[i + 1];
+                    let jarak = graf[simpul_asal][simpul_tujuan];
+                    hasil.push(`${simpul_asal} -> ${simpul_tujuan} : ${jarak}`);
+                    total_jarak += jarak;
+                }
+                hasil.push(`Total jarak: ${total_jarak.toFixed(2)}`);
+                return hasil
+ }
+        }
+
+        const input_simpul = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'AA', 'BB', 'CC', 'DD', 'EE', 'FF', 'GG', 'HH', 'II', 'JJ', 'KK', 'LL', 'MM', 'NN', 'OO', 'PP', 'QQ', 'RR', 'TT', 'UU'];
+        
+const input_graf = {
+    'A': {'B': 1},
+    'B': {'A': 1, 'C':1.4, 'E': 1.1, 'I':0.55},
+    'C': {'D': 2, 'K': 0.6, 'B':1.4},
+    'D': {'M': 0.95,'C': 2},
+    'E': {'B': 1.1,'G': 0.54},
+    'F': {'G': 0.14,'N': 1.2},
+    'G': {'E': 0.54, 'H': 0.85, 'F': 0.14},
+    'H': {'G': 0.85, 'O': 1.2,'I': 0.05},
+    'I': {'J': 0.35, 'H': 0.05,'B': 0.55},
+    'J': {'I': 0.35, 'K': 0.11, 'P': 1.2},
+    'K': {'J': 0.11,'C': 0.6,'L': 0.23},
+    'L': {'M': 0.55, 'K': 0.23,'Q': 1.2},
+    'M': {'D': 0.95, 'R': 1.2,'L': 0.55},
+    'N': {'F': 1.2,'O': 1,'DD': 1.7},
+    'O': {'P': 0.35, 'II': 1.8,'N': 1,'H': 1.2},
+    'P': {'Q': 0.3, 'AA': 1.5,'O': 0.35,'J': 1.2},
+    'Q': {'P': 0.3, 'L': 1.2,'R': 0.29, 'S': 0.4},
+    'R': {'M': 1.2, 'Q': 0.29,'X': 0.46},
+    'S': {'Q': 0.4,'T': 0.03},
+    'T': {'U': 0.03,'S': 0.03},
+    'U': {'V': 0.15,'T': 0.03},
+    'V': {'W': 0.06,'U': 0.15},
+    'W': {'X': 0.09,'V': 0.06},
+    'X': {'R': 0.46,'Y': 0.02,'W': 0.09},
+    'Y': {'X': 0.02,'CC':1.1},
+    'Z': {'AA': 0.02,'KK': 0.28},
+    'AA': {'P': 1.5,'Z': 0.02,'BB': 0.25},
+    'BB': {'AA': 0.25, 'CC': 0.72,'MM': 0.26},
+    'CC': {'OO': 0.29, 'BB': 0.72,'Y': 1.1},
+    'DD': {'EE': 0.75,'N': 1.75},
+    'EE': {'DD': 0.75,'FF': 0.05,'GG': 0.09},
+    'FF': {'EE': 0.05, 'GG': 0.09,'PP': 0.34},
+    'GG': {'EE': 0.09, 'GG': 0.09,'HH': 0.03},
+    'HH': {'II': 0.13,'GG': 0.03},
+    'II': {'JJ': 0.06,'HH': 0.13,'O': 1.8},
+    'JJ': {'II': 0.06,'RR': 0.65,'KK': 0.28},
+    'KK': {'JJ': 0.28,'LL': 0.07,'Z': 0.28},
+    'LL': {'KK': 0.07,'MM': 0.32},
+    'MM': {'LL': 0.32,'BB': 0.26,'NN': 0.7},
+    'NN': {'OO': 0.9,'TT': 0.53,'MM': 0.7},
+    'OO': {'CC': 0.29,'NN': 0.9},
+    'PP': {'FF': 0.34,'QQ': 0.3},
+    'QQ': {'PP': 0.3,'RR': 0.26},
+    'RR': {'QQ': 0.26,'JJ': 0.65,'SS': 0.7},
+    'SS': {'RR': 0.7,'TT': 0.67},
+    'TT': {'SS': 0.67,'NN': 0.53,'UU': 0.46},
+    'UU': {'TT': 0.46},
+};
+
+ function findShortestPath() {
+            const startNode = document.formDijkstra.startNode.value.toUpperCase();
+            const endNode = document.formDijkstra.endNode.value.toUpperCase();
+            
+            const dijkstra = new Dijkstra(input_simpul, input_graf);
+            const [parents, visited_simpul] = dijkstra.mencari_rute(startNode, endNode);
+            const jalur = Dijkstra.jalur_dilewati(parents, startNode, endNode);
+            const hasil = Dijkstra.cetak_jalur_dan_jarak(jalur, input_graf);
+            
+            document.getElementById("hasilJalurDijkstra").value = hasil;
+        }
+    </script>
+</body>
+</html>
